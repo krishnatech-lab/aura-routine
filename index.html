@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Routine - Ultra Daily Routine & Productivity System</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & React DOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <!-- Babel for inline JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    /* Custom glassy blur & smooth transitions */
+    .glass-card {
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .glow-indigo {
+      box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.25);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+    }
+    /* Smooth custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.45);
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-300">
+  
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- ICON HELPER ---
+    const Icon = ({ name, className = "w-4 h-4", ...props }) => {
+      const iconRef = useRef(null);
+      useEffect(() => {
+        if (window.lucide && iconRef.current) {
+          const iconElement = window.lucide.icons[name];
+          if (iconElement) {
+            const svg = window.lucide.createSvgElement(name, iconElement);
+            svg.setAttribute('class', className);
+            iconRef.current.innerHTML = '';
+            iconRef.current.appendChild(svg);
+          }
+        }
+      }, [name, className]);
+      return <span ref={iconRef} className="inline-flex items-center justify-center shrink-0" {...props} />;
+    };
+
+    // --- 5 PROFESSIONAL THEMES CONFIGURATION ---
+    const THEMES = {
+      auraDark: {
+        id: 'auraDark',
+        name: 'Aura Cyber Dark',
+        bg: 'bg-slate-950',
+        card: 'bg-slate-900/70 border-slate-800/80',
+        cardHover: 'hover:border-indigo-500/50 hover:bg-slate-900/90',
+        text: 'text-slate-100',
+        textMuted: 'text-slate-400',
+        sidebar: 'bg-slate-900/90 border-slate-800/80',
+        accent: 'from-indigo-500 to-purple-600',
+        badge: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
+      },
+      midnightExec: {
+        id: 'midnightExec',
+        name: 'Midnight Executive',
+        bg: 'bg-zinc-950',
+        card: 'bg-zinc-900/80 border-zinc-800',
+        cardHover: 'hover:border-cyan-500/50 hover:bg-zinc-900',
+        text: 'text-zinc-100',
+        textMuted: 'text-zinc-400',
+        sidebar: 'bg-zinc-900 border-zinc-800',
+        accent: 'from-cyan-500 to-blue-600',
+        badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
+      },
+      emeraldFocus: {
+        id: 'emeraldFocus',
+        name: 'Emerald Pro Focus',
+        bg: 'bg-emerald-950/90',
+        card: 'bg-emerald-900/40 border-emerald-800/50',
+        cardHover: 'hover:border-emerald-400/50 hover:bg-emerald-900/60',
+        text: 'text-emerald-50',
+        textMuted: 'text-emerald-300/70',
+        sidebar: 'bg-emerald-950 border-emerald-900',
+        accent: 'from-emerald-400 to-teal-500',
+        badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+      },
+      nordicSunset: {
+        id: 'nordicSunset',
+        name: 'Nordic Sunset',
+        bg: 'bg-neutral-950',
+        card: 'bg-stone-900/70 border-stone-800',
+        cardHover: 'hover:border-rose-500/50 hover:bg-stone-900',
+        text: 'text-stone-100',
+        textMuted: 'text-stone-400',
+        sidebar: 'bg-stone-900 border-stone-800',
+        accent: 'from-rose-500 to-amber-500',
+        badge: 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+      },
+      lightPro: {
+        id: 'lightPro',
+        name: 'Clean Studio Light',
+        bg: 'bg-slate-50',
+        card: 'bg-white border-slate-200/90 shadow-sm',
+        cardHover: 'hover:border-indigo-300 hover:shadow-md',
+        text: 'text-slate-800',
+        textMuted: 'text-slate-500',
+        sidebar: 'bg-white border-slate-200',
+        accent: 'from-indigo-600 to-violet-600',
+        badge: 'bg-indigo-50 text-indigo-600 border-indigo-200'
+      }
+    };
+
+    // --- INITIAL DATA STRUCTURES ---
+    const INITIAL_ROUTINES = [
+      { id: 'r1', time: '05:00', endTime: '06:00', title: 'Wake up & Morning Prep', category: 'Health', priority: 'High', completed: false },
+      { id: 'r2', time: '06:00', endTime: '08:00', title: 'Coaching Session', category: 'Study', priority: 'High', completed: false },
+      { id: 'r3', time: '08:00', endTime: '15:00', title: 'School', category: 'Study', priority: 'High', completed: false },
+      { id: 'r4', time: '15:00', endTime: '16:00', title: 'Return home & Rest', category: 'Personal', priority: 'Medium', completed: false },
+      { id: 'r5', time: '16:00', endTime: '17:00', title: 'Chemistry coaching', category: 'Study', priority: 'High', completed: false },
+      { id: 'r6', time: '17:00', endTime: '19:00', title: 'Physics coaching', category: 'Study', priority: 'High', completed: false },
+      { id: 'r7', time: '19:00', endTime: '20:00', title: 'Return home & Snacks', category: 'Personal', priority: 'Medium', completed: false },
+      { id: 'r8', time: '20:00', endTime: '22:00', title: 'Self Study & Homework', category: 'Study', priority: 'High', completed: false },
+      { id: 'r9', time: '22:00', endTime: '22:30', title: 'Dinner & Relaxation', category: 'Personal', priority: 'Low', completed: false },
+      { id: 'r10', time: '22:30', endTime: '05:00', title: 'Night Sleep', category: 'Health', priority: 'High', completed: false }
+    ];
+
+    const INITIAL_TASKS = [
+      { id: 't1', title: 'Complete Physics Thermodynamics Assignment', description: 'Solve numerical problems 1 to 25', category: 'Study', priority: 'High', dueDate: new Date().toISOString().split('T')[0], completed: false },
+      { id: 't2', title: 'Revise Organic Chemistry Mechanisms', description: 'Focus on Reaction mechanisms', category: 'Study', priority: 'Medium', dueDate: new Date().toISOString().split('T')[0], completed: true },
+      { id: 't3', title: 'Maths Integration Mock Test', description: 'Complete 1-hour speed test', category: 'Study', priority: 'High', dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], completed: false },
+      { id: 't4', title: 'Organize Study Table', description: 'Clean desk and categorize lecture notes', category: 'Personal', priority: 'Low', dueDate: new Date().toISOString().split('T')[0], completed: false }
+    ];
+
+    const INITIAL_HABITS = [
+      { id: 'h1', title: 'Wake up early (5:00 AM)', category: 'Health', streak: 14, completedToday: false },
+      { id: 'h2', title: 'Exercise & Stretching', category: 'Fitness', streak: 7, completedToday: true },
+      { id: 'h3', title: 'Drink 3L Hydration', category: 'Health', streak: 21, completedToday: true },
+      { id: 'h4', title: 'Read 20 pages of Book', category: 'Mindset', streak: 9, completedToday: false },
+      { id: 'h5', title: 'Sleep before 11:00 PM', category: 'Health', streak: 5, completedToday: false }
+    ];
+
+    const INITIAL_SUBJECTS = [
+      { id: 's1', name: 'Physics', color: '#3B82F6', targetHours: 3, studiedHours: 1.5, chapters: [{ id: 'c1', name: 'Electrostatics', completed: true }, { id: 'c2', name: 'Thermodynamics', completed: false }], examDate: '2026-11-25' },
+      { id: 's2', name: 'Chemistry', color: '#10B981', targetHours: 3, studiedHours: 2.5, chapters: [{ id: 'c3', name: 'Chemical Bonding', completed: true }], examDate: '2026-11-30' },
+      { id: 's3', name: 'Mathematics', color: '#8B5CF6', targetHours: 3.5, studiedHours: 2.0, chapters: [{ id: 'c4', name: 'Calculus', completed: true }], examDate: '2026-11-20' }
+    ];
+
+    function RoutineApp() {
+      const [activeTab, setActiveTab] = useState('dashboard');
+      const [currentThemeKey, setCurrentThemeKey] = useState('auraDark');
+      const [userName, setUserName] = useState('Alex');
+      const [currentTime, setCurrentTime] = useState(new Date());
+
+      const theme = THEMES[currentThemeKey];
+
+      // Core State
+      const [routines, setRoutines] = useState(() => JSON.parse(localStorage.getItem('aura_r') || JSON.stringify(INITIAL_ROUTINES)));
+      const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem('aura_t') || JSON.stringify(INITIAL_TASKS)));
+      const [habits, setHabits] = useState(() => JSON.parse(localStorage.getItem('aura_h') || JSON.stringify(INITIAL_HABITS)));
+      const [subjects, setSubjects] = useState(() => JSON.parse(localStorage.getItem('aura_s') || JSON.stringify(INITIAL_SUBJECTS)));
+
+      // Modals
+      const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
+      const [editingRoutine, setEditingRoutine] = useState(null);
+      const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+      const [editingTask, setEditingTask] = useState(null);
+      const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
+
+      // Pomodoro Timer
+      const [timerSeconds, setTimerSeconds] = useState(25 * 60);
+      const [timerActive, setTimerActive] = useState(false);
+
+      // Persistence
+      useEffect(() => { localStorage.setItem('aura_r', JSON.stringify(routines)); }, [routines]);
+      useEffect(() => { localStorage.setItem('aura_t', JSON.stringify(tasks)); }, [tasks]);
+      useEffect(() => { localStorage.setItem('aura_h', JSON.stringify(habits)); }, [habits]);
+      useEffect(() => { localStorage.setItem('aura_s', JSON.stringify(subjects)); }, [subjects]);
+
+      useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      useEffect(() => {
+        let interval = null;
+        if (timerActive && timerSeconds > 0) {
+          interval = setInterval(() => setTimerSeconds(s => s - 1), 1000);
+        } else if (timerSeconds === 0 && timerActive) {
+          setTimerActive(false);
+        }
+        return () => clearInterval(interval);
+      }, [timerActive, timerSeconds]);
+
+      const todayStr = useMemo(() => currentTime.toISOString().split('T')[0], [currentTime]);
+      const currentFormattedTime = currentTime.toTimeString().substring(0, 5);
+
+      const enrichedRoutines = useMemo(() => {
+        return routines.map(item => ({
+          ...item,
+          isMissed: currentFormattedTime > item.time && !item.completed
+        }));
+      }, [routines, currentFormattedTime]);
+
+      const completedRoutines = enrichedRoutines.filter(r => r.completed).length;
+      const missedRoutines = enrichedRoutines.filter(r => r.isMissed).length;
+      const completedTasks = tasks.filter(t => t.completed).length;
+      const completedHabits = habits.filter(h => h.completedToday).length;
+
+      const score = Math.round(
+        ((routines.length ? completedRoutines / routines.length : 1) * 40) +
+        ((habits.length ? completedHabits / habits.length : 1) * 30) +
+        ((tasks.length ? completedTasks / tasks.length : 1) * 30)
+      );
+
+      const toggleRoutine = (id) => setRoutines(routines.map(r => r.id === id ? { ...r, completed: !r.completed } : r));
+      const toggleTask = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+      const toggleHabit = (id) => setHabits(habits.map(h => h.id === id ? { ...h, completedToday: !h.completedToday, streak: !h.completedToday ? h.streak + 1 : h.streak - 1 } : h));
+
+      const handleSaveRoutine = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const obj = {
+          id: editingRoutine ? editingRoutine.id : `r_${Date.now()}`,
+          title: fd.get('title'),
+          time: fd.get('time'),
+          endTime: fd.get('endTime'),
+          category: fd.get('category'),
+          priority: fd.get('priority'),
+          completed: editingRoutine ? editingRoutine.completed : false
+        };
+        if (editingRoutine) {
+          setRoutines(routines.map(r => r.id === editingRoutine.id ? obj : r));
+        } else {
+          setRoutines([...routines, obj]);
+        }
+        setIsRoutineModalOpen(false);
+        setEditingRoutine(null);
+      };
+
+      const handleSaveTask = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const obj = {
+          id: editingTask ? editingTask.id : `t_${Date.now()}`,
+          title: fd.get('title'),
+          description: fd.get('description'),
+          category: fd.get('category'),
+          priority: fd.get('priority'),
+          dueDate: fd.get('dueDate') || todayStr,
+          completed: editingTask ? editingTask.completed : false
+        };
+        if (editingTask) {
+          setTasks(tasks.map(t => t.id === editingTask.id ? obj : t));
+        } else {
+          setTasks([...tasks, obj]);
+        }
+        setIsTaskModalOpen(false);
+        setEditingTask(null);
+      };
+
+      const handleSaveHabit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        setHabits([...habits, {
+          id: `h_${Date.now()}`,
+          title: fd.get('title'),
+          category: fd.get('category'),
+          streak: 0,
+          completedToday: false
+        }]);
+        setIsHabitModalOpen(false);
+      };
+
+      return (
+        <div className={`min-h-screen ${theme.bg} ${theme.text} flex flex-col md:flex-row transition-colors duration-300`}>
+          
+          {/* SIDEBAR */}
+          <aside className={`w-full md:w-72 p-5 ${theme.sidebar} border-b md:border-b-0 md:border-r flex flex-col justify-between shrink-0 glass-card`}>
+            <div>
+              {/* Logo */}
+              <div className="flex items-center gap-3 px-2 py-3 mb-6">
+                <div className={`p-2.5 rounded-2xl bg-gradient-to-tr ${theme.accent} text-white shadow-lg glow-indigo`}>
+                  <Icon name="sparkles" className="w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    Aura Routine
+                  </h1>
+                  <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Pro Productivity</span>
+                </div>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="space-y-1.5">
+                {[
+                  { id: 'dashboard', label: 'Dashboard Overview', icon: 'layout-grid' },
+                  { id: 'routine', label: 'Daily Timetable', icon: 'clock' },
+                  { id: 'tasks', label: 'Task Manager', icon: 'check-circle-2' },
+                  { id: 'habits', label: 'Habit Tracker', icon: 'flame' },
+                  { id: 'study', label: 'Study & Pomodoro', icon: 'book-open' },
+                  { id: 'settings', label: 'Themes & Settings', icon: 'palette' }
+                ].map((item) => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-semibold text-xs transition-all duration-200 ${
+                        isActive
+                          ? `bg-gradient-to-r ${theme.accent} text-white shadow-md glow-indigo scale-[1.02]`
+                          : `${theme.textMuted} hover:bg-slate-800/40 hover:text-white`
+                      }`}
+                    >
+                      <Icon name={item.icon} className="w-4 h-4" />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Quick Theme Selector Dropdown */}
+            <div className="pt-4 border-t border-slate-800/60 mt-6 space-y-3">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block px-1">Choose Pro Theme</label>
+              <select
+                value={currentThemeKey}
+                onChange={(e) => setCurrentThemeKey(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 border border-slate-700/80 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {Object.values(THEMES).map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          </aside>
+
+          {/* MAIN CONTAINER */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+            
+            {/* TOP HEADER */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/50">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-xs font-mono text-emerald-400 uppercase tracking-widest font-bold">System Live</span>
+                </div>
+                <h2 className="text-2xl font-black tracking-tight mt-1">
+                  {activeTab === 'dashboard' && `Welcome back, ${userName}!`}
+                  {activeTab === 'routine' && 'Daily Schedule & Timetable'}
+                  {activeTab === 'tasks' && 'Task & Priority Manager'}
+                  {activeTab === 'habits' && 'Habit Building Hub'}
+                  {activeTab === 'study' && 'Study Planner & Timer'}
+                  {activeTab === 'settings' && 'Personal Settings & Themes'}
+                </h2>
+                <p className={`text-xs ${theme.textMuted} mt-0.5 font-mono`}>
+                  {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })} • {currentTime.toLocaleTimeString()}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { setEditingRoutine(null); setIsRoutineModalOpen(true); }}
+                  className={`px-4 py-2.5 rounded-2xl bg-gradient-to-r ${theme.accent} text-white font-bold text-xs flex items-center gap-2 shadow-lg glow-indigo hover:opacity-95 transition transform active:scale-95`}
+                >
+                  <Icon name="plus" className="w-4 h-4 stroke-[3]" /> Add Activity
+                </button>
+                <button
+                  onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}
+                  className={`px-4 py-2.5 rounded-2xl border border-slate-700/80 hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition`}
+                >
+                  <Icon name="plus" className="w-4 h-4" /> Add Task
+                </button>
+              </div>
+            </div>
+
+            {/* ================= DASHBOARD VIEW ================= */}
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                {/* Visual Stats Widgets */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className={`p-5 rounded-3xl border ${theme.card} ${theme.cardHover} transition duration-200 glass-card relative overflow-hidden`}>
+                    <div className="flex justify-between text-slate-400 mb-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider">Productivity Score</span>
+                      <Icon name="award" className="w-4 h-4 text-indigo-400" />
+                    </div>
+                    <div className="text-3xl font-extrabold">{score}%</div>
+                    <div className="w-full bg-slate-800/80 h-2 rounded-full mt-4 overflow-hidden p-0.5">
+                      <div className={`h-full rounded-full bg-gradient-to-r ${theme.accent} transition-all duration-700`} style={{ width: `${score}%` }} />
+                    </div>
+                  </div>
+
+                  <div className={`p-5 rounded-3xl border ${theme.card} ${theme.cardHover} transition duration-200 glass-card`}>
+                    <div className="flex justify-between text-slate-400 mb-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider">Today's Tasks</span>
+                      <Icon name="check-circle-2" className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div className="text-3xl font-extrabold">{completedTasks} / {tasks.length}</div>
+                    <span className="text-[11px] text-emerald-400 font-semibold mt-2 block">{tasks.length - completedTasks} remaining</span>
+                  </div>
+
+                  <div className={`p-5 rounded-3xl border ${theme.card} ${theme.cardHover} transition duration-200 glass-card`}>
+                    <div className="flex justify-between text-slate-400 mb-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider">Habit Consistency</span>
+                      <Icon name="flame" className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <div className="text-3xl font-extrabold">{completedHabits} / {habits.length}</div>
+                    <span className="text-[11px] text-amber-400 font-semibold mt-2 block">Active Streaks</span>
+                  </div>
+
+                  <div className={`p-5 rounded-3xl border ${theme.card} ${theme.cardHover} transition duration-200 glass-card`}>
+                    <div className="flex justify-between text-slate-400 mb-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider">Missed Activities</span>
+                      <Icon name="alert-circle" className="w-4 h-4 text-rose-400" />
+                    </div>
+                    <div className="text-3xl font-extrabold">{missedRoutines}</div>
+                    <span className={`text-[11px] font-semibold mt-2 block ${missedRoutines > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+                      {missedRoutines > 0 ? 'Reschedule required' : 'All targets hit'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dashboard Main Schedule */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className={`lg:col-span-2 p-6 rounded-3xl border ${theme.card} glass-card space-y-4`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-extrabold text-base">Live Daily Routine Schedule</h3>
+                        <p className={`text-xs ${theme.textMuted}`}>Automated tracking based on time</p>
+                      </div>
+                      <button onClick={() => setActiveTab('routine')} className="text-xs text-indigo-400 font-bold hover:underline">Full Timetable →</button>
+                    </div>
+
+                    <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                      {enrichedRoutines.map(item => (
+                        <div 
+                          key={item.id} 
+                          className={`p-4 rounded-2xl border transition flex items-center justify-between ${
+                            item.completed 
+                              ? 'bg-slate-900/20 border-slate-800/40 opacity-50' 
+                              : item.isMissed 
+                              ? 'bg-rose-500/10 border-rose-500/30' 
+                              : 'bg-slate-800/40 border-slate-700/60 hover:border-indigo-500/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5">
+                            <button onClick={() => toggleRoutine(item.id)} className="transition transform active:scale-90">
+                              <Icon name={item.completed ? "check-circle-2" : "circle"} className={`w-5 h-5 ${item.completed ? 'text-indigo-400' : 'text-slate-500'}`} />
+                            </button>
+                            <div>
+                              <p className={`text-xs font-bold ${item.completed ? 'line-through text-slate-500' : ''}`}>{item.title}</p>
+                              <span className="text-[10px] text-slate-400 font-mono">{item.time} - {item.endTime} • {item.category}</span>
+                            </div>
+                          </div>
+                          {item.isMissed && !item.completed && (
+                            <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30">MISSED</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Habit Tracker Side Box */}
+                  <div className={`p-6 rounded-3xl border ${theme.card} glass-card space-y-4`}>
+                    <h3 className="font-extrabold text-base">Habit Streaks</h3>
+                    <div className="space-y-3">
+                      {habits.map(h => (
+                        <div 
+                          key={h.id}
+                          onClick={() => toggleHabit(h.id)}
+                          className={`p-3.5 rounded-2xl border cursor-pointer flex items-center justify-between transition transform hover:scale-[1.01] ${
+                            h.completedToday ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/40 border-slate-700/60'
+                          }`}
+                        >
+                          <span className="text-xs font-bold">{h.title}</span>
+                          <div className="flex items-center gap-1 text-amber-400 text-xs font-black">
+                            <Icon name="flame" className="w-4 h-4 fill-amber-400" /> {h.streak}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ================= ROUTINE TAB ================= */}
+            {activeTab === 'routine' && (
+              <div className={`p-6 rounded-3xl border ${theme.card} glass-card space-y-4 overflow-x-auto`}>
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-bold">
+                      <th className="pb-4">Status</th>
+                      <th className="pb-4">Time Slot</th>
+                      <th className="pb-4">Activity</th>
+                      <th className="pb-4">Category</th>
+                      <th className="pb-4">Priority</th>
+                      <th className="pb-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/40">
+                    {enrichedRoutines.map(item => (
+                      <tr key={item.id} className="hover:bg-slate-800/30 transition">
+                        <td className="py-3.5">
+                          <button onClick={() => toggleRoutine(item.id)} className="flex items-center gap-2">
+                            <Icon name={item.completed ? "check-circle-2" : "circle"} className={`w-4 h-4 ${item.completed ? 'text-indigo-400' : 'text-slate-500'}`} />
+                            <span className="font-semibold text-xs">{item.completed ? 'Completed' : item.isMissed ? 'Missed' : 'Pending'}</span>
+                          </button>
+                        </td>
+                        <td className="py-3.5 font-mono text-slate-300 font-semibold">{item.time} - {item.endTime}</td>
+                        <td className="py-3.5 font-bold">{item.title}</td>
+                        <td className="py-3.5"><span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-semibold">{item.category}</span></td>
+                        <td className="py-3.5">
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                            item.priority === 'High' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400'
+                          }`}>
+                            {item.priority}
+                          </span>
+                        </td>
+                        <td className="py-3.5 text-right space-x-2">
+                          <button onClick={() => { setEditingRoutine(item); setIsRoutineModalOpen(true); }} className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-indigo-400">
+                            <Icon name="edit-3" className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => setRoutines(routines.filter(r => r.id !== item.id))} className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-400">
+                            <Icon name="trash-2" className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* ================= TASKS TAB ================= */}
+            {activeTab === 'tasks' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tasks.map(t => (
+                    <div key={t.id} className={`p-5 rounded-3xl border ${theme.card} glass-card space-y-3`}>
+                      <div className="flex justify-between items-start">
+                        <div className="flex gap-3 items-start">
+                          <button onClick={() => toggleTask(t.id)} className="mt-0.5">
+                            <Icon name={t.completed ? "check-circle-2" : "circle"} className={`w-5 h-5 ${t.completed ? 'text-indigo-400' : 'text-slate-500'}`} />
+                          </button>
+                          <div>
+                            <h4 className={`text-sm font-bold ${t.completed ? 'line-through text-slate-500' : ''}`}>{t.title}</h4>
+                            <p className="text-xs text-slate-400 mt-1">{t.description}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] pt-3 border-t border-slate-800/40">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-800 font-semibold">{t.category}</span>
+                        <span className="font-mono text-slate-400">Due: {t.dueDate}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ================= HABITS TAB ================= */}
+            {activeTab === 'habits' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-extrabold text-base">Habit Builder</h3>
+                  <button onClick={() => setIsHabitModalOpen(true)} className={`px-4 py-2 rounded-2xl bg-gradient-to-r ${theme.accent} text-white font-bold text-xs`}>
+                    + New Habit
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {habits.map(h => (
+                    <div key={h.id} className={`p-5 rounded-3xl border ${theme.card} glass-card space-y-4`}>
+                      <h4 className="font-bold text-sm">{h.title}</h4>
+                      <div className="flex justify-between items-center bg-slate-800/40 p-3 rounded-2xl border border-slate-800">
+                        <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                          <Icon name="flame" className="w-4 h-4 fill-amber-400" /> {h.streak} Days Streak
+                        </span>
+                        <button onClick={() => toggleHabit(h.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold ${h.completedToday ? 'bg-emerald-500 text-slate-950' : 'bg-indigo-600 text-white'}`}>
+                          {h.completedToday ? 'Done' : 'Mark'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ================= STUDY & TIMER TAB ================= */}
+            {activeTab === 'study' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className={`p-6 rounded-3xl border ${theme.card} glass-card text-center space-y-4 flex flex-col justify-between`}>
+                  <span className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">Pomodoro Timer</span>
+                  <div className="text-5xl font-mono font-black text-indigo-400 tracking-wider">
+                    {Math.floor(timerSeconds / 60).toString().padStart(2, '0')}:{(timerSeconds % 60).toString().padStart(2, '0')}
+                  </div>
+                  <button onClick={() => setTimerActive(!timerActive)} className={`w-full py-3 rounded-2xl bg-gradient-to-r ${theme.accent} text-white font-extrabold text-xs shadow-lg`}>
+                    {timerActive ? 'Pause Session' : 'Start Focus Session'}
+                  </button>
+                </div>
+
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {subjects.map(sub => (
+                    <div key={sub.id} className={`p-5 rounded-3xl border ${theme.card} glass-card space-y-2`}>
+                      <h4 className="font-bold text-sm" style={{ color: sub.color }}>{sub.name}</h4>
+                      <p className="text-xs text-slate-400">Target: {sub.targetHours} hrs</p>
+                      <p className="text-xs font-bold">{sub.studiedHours} hrs completed</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ================= SETTINGS & THEMES ================= */}
+            {activeTab === 'settings' && (
+              <div className="space-y-6 max-w-2xl">
+                <div className={`p-6 rounded-3xl border ${theme.card} glass-card space-y-4`}>
+                  <h3 className="font-extrabold text-base">Select Theme</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Object.values(THEMES).map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setCurrentThemeKey(t.id)}
+                        className={`p-4 rounded-2xl border text-left flex items-center justify-between font-bold text-xs transition ${
+                          currentThemeKey === t.id ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-slate-800 hover:bg-slate-800/40'
+                        }`}
+                      >
+                        <span>{t.name}</span>
+                        {currentThemeKey === t.id && <Icon name="check" className="w-4 h-4 text-indigo-400" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* ROUTINE MODAL */}
+          {isRoutineModalOpen && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+              <div className={`w-full max-w-md rounded-3xl p-6 border ${theme.card} space-y-4 glass-card`}>
+                <h3 className="font-extrabold text-base">{editingRoutine ? 'Edit Activity' : 'Add Activity Slot'}</h3>
+                <form onSubmit={handleSaveRoutine} className="space-y-3 text-xs">
+                  <input name="title" defaultValue={editingRoutine?.title || ''} required placeholder="Activity name" className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="time" name="time" defaultValue={editingRoutine?.time || '08:00'} required className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white" />
+                    <input type="time" name="endTime" defaultValue={editingRoutine?.endTime || '09:00'} required className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white" />
+                  </div>
+                  <div className="pt-2 flex justify-end gap-2">
+                    <button type="button" onClick={() => setIsRoutineModalOpen(false)} className="px-4 py-2 rounded-xl border border-slate-700">Cancel</button>
+                    <button type="submit" className={`px-4 py-2 rounded-xl bg-gradient-to-r ${theme.accent} text-white font-bold`}>Save Activity</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* TASK MODAL */}
+          {isTaskModalOpen && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+              <div className={`w-full max-w-md rounded-3xl p-6 border ${theme.card} space-y-4 glass-card`}>
+                <h3 className="font-extrabold text-base">Add New Task</h3>
+                <form onSubmit={handleSaveTask} className="space-y-3 text-xs">
+                  <input name="title" required placeholder="Task title" className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white" />
+                  <textarea name="description" placeholder="Task description" className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white" />
+                  <div className="pt-2 flex justify-end gap-2">
+                    <button type="button" onClick={() => setIsTaskModalOpen(false)} className="px-4 py-2 rounded-xl border border-slate-700">Cancel</button>
+                    <button type="submit" className={`px-4 py-2 rounded-xl bg-gradient-to-r ${theme.accent} text-white font-bold`}>Save Task</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<RoutineApp />);
+  </script>
+</body>
+</html>
